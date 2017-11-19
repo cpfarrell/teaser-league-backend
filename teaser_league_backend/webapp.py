@@ -1,4 +1,5 @@
 from datetime import datetime
+import hashlib
 
 from flask import Flask
 from flask import jsonify
@@ -27,6 +28,33 @@ DBSession.bind = engine
 session = DBSession()
 
 WEEKLY_BET = 15
+
+AUTH = {
+        'woods': 'pwoods',
+        'farrell': 'pfarrell',
+        'ngoyal': 'pngoyal',
+}
+
+def authenticate_user(username, password):
+    return  username in AUTH and AUTH[username] == password
+
+def generate_user_token(username):
+    return hashlib.md5(username).hexdigest()
+
+
+@app.route('/login', methods = ['POST'])
+def login():
+    auth_json = request.get_json()
+    print "Auth Req: " + str(auth_json)
+    if authenticate_user(auth_json.get('username'), auth_json.get('password')):
+        ret = {'status': 'success', 'id_token': generate_user_token(auth_json['username'])}
+        print ret
+        return jsonify(ret)
+
+    # Failed auth.
+    ret = {'status': 'fail', 'ERROR': 'sad face'};
+    return jsonify(ret);
+
 
 @app.route('/leaderboard')
 def leaderboard():
@@ -66,10 +94,24 @@ def week_breakdown(week, username):
         )
     return jsonify(teams)
 
+# This should be a check against active sessions on a backend, looking for timeouts.
+def pick_is_for_current_user_or_user_is_admin(username, id_token):
+    """ Doesn't check for admin mode yet! """
+    print "Auth Check: (%s):" % username, generate_user_token(username), id_token
+    return generate_user_token(username) == id_token
+
 @app.route('/make_picks/<week>/<username>', methods = ['POST'])
 def make_picks(week, username):
+    data = request.get_json()
+    print data
+    if not pick_is_for_current_user_or_user_is_admin(username, data['id_token']):
+        print "pick auth failed for request:"
+        print data
+        return jsonify({'success': False})
+    print "auth allowed"
+
     session.query(Picks).filter(Picks.username==username).filter(Picks.week==week).delete()
-    teams = request.get_json()
+    teams = data['teams']
     for team in teams:
         session.add(Picks(username=username, team=team, week=week))
     session.commit()
