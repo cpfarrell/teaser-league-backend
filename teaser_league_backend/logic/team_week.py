@@ -12,9 +12,9 @@ class TeamWeek(Base):
     __tablename__ = 'team_week'
     # Here we define columns for the table team_week
     # Notice that each column is also a normal Python instance attribute.
-    id = Column(Integer, primary_key=True)
-    week = Column(Integer, primary_key=True)
-    team = Column(String(25), nullable=False)
+    game_id = Column(String(25), nullable=False)
+    week = Column(Integer, nullable=False, primary_key=True)
+    team = Column(String(25), nullable=False, primary_key=True)
     vegas_spread = Column(Float, nullable=False)
     adjusted_spread = Column(Float, nullable=False)
     # Both following null if game not yet completed

@@ -26,20 +26,23 @@ DBSession = sessionmaker()
 DBSession.bind = engine
 session = DBSession()
 
+WEEKLY_BET = 15
 
 @app.route('/leaderboard')
 def leaderboard():
     scores = []
-    for total in session.query(UserWeekResult.username, func.sum(UserWeekResult.won_loss)).group_by(
-            UserWeekResult.username).order_by(func.sum(UserWeekResult.won_loss).desc()).all():
-        scores.append({'username': total.username, 'profit': total[1]})
-    return jsonify(scores)
+    for username, in session.query(Picks.username).distinct():
+        total_profit = 0
+        for week, in session.query(TeamWeek.week).distinct().order_by(TeamWeek.week):
+            total_profit += get_won_loss_for_week(week, username)
+        scores.append({'username': username, 'profit': total_profit})
+    return jsonify(sorted(scores, key=lambda k: k['profit'], reverse=True))
 
 @app.route('/list_of_weeks/<username>')
 def list_of_weeks(username):
     weeks = []
-    for uwr in session.query(UserWeekResult).filter(UserWeekResult.username == username).all():
-        weeks.append({'week': uwr.week, 'profit': uwr.won_loss})
+    for week, in session.query(TeamWeek.week).distinct().order_by(TeamWeek.week):
+        weeks.append({'week': week, 'profit': get_won_loss_for_week(week, username)})
     return jsonify(weeks)
 
 @app.route('/weekly_picks/<week>/<username>')
@@ -48,6 +51,7 @@ def week_breakdown(week, username):
     for result in session.query(TeamWeek, Picks)\
                         .outerjoin(Picks, and_(Picks.team==TeamWeek.team, Picks.week==TeamWeek.week, Picks.username==username))\
                         .filter(TeamWeek.week==week)\
+                        .order_by(TeamWeek.game_time, TeamWeek.game_id)\
                         .all():
         teams.append(
             {
@@ -66,8 +70,49 @@ def week_breakdown(week, username):
 def make_picks(week, username):
     session.query(Picks).filter(Picks.username==username).filter(Picks.week==week).delete()
     teams = request.get_json()
-    print("Making picks " + str(teams))
     for team in teams:
         session.add(Picks(username=username, team=team, week=week))
     session.commit()
     return jsonify({'success': True})
+
+def get_won_loss_for_week(week, username):
+    if user_lost_in_week(week, username):
+        basic_loss = num_won_in_week(week) * WEEKLY_BET * -1
+        return basic_loss + (20 * penalty_for_week(week, username))
+    else:
+        return num_loss_in_week(week) * WEEKLY_BET
+
+def num_won_in_week(week):
+    total_users = session.query(Picks.username)\
+                        .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
+                        .filter(TeamWeek.week == week)\
+                        .distinct()\
+                        .count()
+
+    return total_users - num_loss_in_week(week)
+
+def num_loss_in_week(week):
+    return session.query(Picks.username)\
+                        .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
+                        .filter(TeamWeek.busted == True)\
+                        .filter(TeamWeek.week == week)\
+                        .distinct()\
+                        .count()
+
+
+def user_lost_in_week(week, username):
+    return session.query(Picks.username)\
+              .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
+                        .filter(Picks.username == username)\
+                        .filter(TeamWeek.week == week)\
+                        .filter(TeamWeek.busted == True)\
+                        .distinct()\
+                        .scalar() is not None
+
+def penalty_for_week(week, username):
+    return session.query(Picks.username)\
+              .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
+              .filter(Picks.username == 'Chris Farrell')\
+              .filter(TeamWeek.week == 2)\
+              .filter(TeamWeek.busted == True)\
+              .count() > 1

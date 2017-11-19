@@ -1,3 +1,5 @@
 flask
+ipdb
 pytz
+requests
 sqlalchemy

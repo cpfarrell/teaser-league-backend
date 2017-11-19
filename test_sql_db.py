@@ -15,6 +15,7 @@ engine = create_engine('sqlite:///sqlalchemy_example.db')
 Base.metadata.bind = engine
 
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import all_
 
 DBSession = sessionmaker()
 DBSession.bind = engine
@@ -25,6 +26,16 @@ session = DBSession()
 #    session.add(Picks(username='farrell', team=team, week=1))
 #session.commit()
 
-for result in session.query(Picks)\
-                        .all():
-    print result.username, result.week, result.team
+#                        .filter(TeamWeek.busted == False)\
+#                        .join(Picks, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
+#                        .filter(TeamWeek.week == 1)\
+
+#                        .filter(TeamWeek.busted == True)\
+
+print(session.query(Picks.username)\
+              .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
+              .filter(Picks.username == 'Chris Farrell')\
+              .filter(TeamWeek.week == 2)\
+              .filter(TeamWeek.busted == True)\
+              .count())
+
