@@ -1,4 +1,3 @@
-# farrell trying miserably to write sql alchemy
 import os
 import sys
 from sqlalchemy import Column, ForeignKey, Integer, String, Float, Boolean
