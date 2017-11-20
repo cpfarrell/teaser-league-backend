@@ -9,14 +9,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
 from sqlalchemy import and_
+from sqlalchemy import exists
 
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.team_week import TeamWeek
 from teaser_league_backend.logic.game import Game
 from teaser_league_backend.logic.user_week_result import UserWeekResult
-
-import teaser_league_backend.logic.team_week
 from teaser_league_backend.logic.picks import Picks
+from teaser_league_backend.logic.users import Users
+import teaser_league_backend.logic.team_week
+
 
 app = Flask(__name__)
 
@@ -36,19 +38,21 @@ AUTH = {
 }
 
 def authenticate_user(username, password):
-    return  username in AUTH and AUTH[username] == password
+    login_success = session.query(Users).filter(Users.username=='Chris Farrell').filter(Users.password=='pChris Farrell').count() == 1
+    print('Login was {}'.format('successful' if login_success else 'unsuccessful'))
+    return login_success
 
 def generate_user_token(username):
-    return hashlib.md5(username).hexdigest()
+    return hashlib.md5(username.encode('utf-8')).hexdigest()
 
 
 @app.route('/login', methods = ['POST'])
 def login():
     auth_json = request.get_json()
-    print "Auth Req: " + str(auth_json)
+    print("Auth Req: " + str(auth_json))
     if authenticate_user(auth_json.get('username'), auth_json.get('password')):
         ret = {'status': 'success', 'id_token': generate_user_token(auth_json['username'])}
-        print ret
+        print(ret)
         return jsonify(ret)
 
     # Failed auth.
@@ -97,18 +101,18 @@ def week_breakdown(week, username):
 # This should be a check against active sessions on a backend, looking for timeouts.
 def pick_is_for_current_user_or_user_is_admin(username, id_token):
     """ Doesn't check for admin mode yet! """
-    print "Auth Check: (%s):" % username, generate_user_token(username), id_token
+    print("Auth Check: (%s):" % username, generate_user_token(username), id_token)
     return generate_user_token(username) == id_token
 
 @app.route('/make_picks/<week>/<username>', methods = ['POST'])
 def make_picks(week, username):
     data = request.get_json()
-    print data
+    print(data)
     if not pick_is_for_current_user_or_user_is_admin(username, data['id_token']):
-        print "pick auth failed for request:"
-        print data
+        print("pick auth failed for request:")
+        print(data)
         return jsonify({'success': False})
-    print "auth allowed"
+    print("auth allowed")
 
     session.query(Picks).filter(Picks.username==username).filter(Picks.week==week).delete()
     teams = data['teams']

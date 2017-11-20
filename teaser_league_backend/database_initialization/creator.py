@@ -5,7 +5,8 @@ import teaser_league_backend.logic.team_week
 import teaser_league_backend.logic.game
 import teaser_league_backend.logic.picks
 import teaser_league_backend.logic.user_week_result
- 
+import teaser_league_backend.logic.users
+
 # Create an engine that stores data in the local directory's
 # sqlalchemy_example.db file.
 engine = create_engine('sqlite:///sqlalchemy_example.db')

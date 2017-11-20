@@ -3,12 +3,14 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
 from sqlalchemy import and_
 from sqlalchemy import or_
+from sqlalchemy import exists
 
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.team_week import TeamWeek
 from teaser_league_backend.logic.game import Game
 from teaser_league_backend.logic.picks import Picks
 from teaser_league_backend.logic.user_week_result import UserWeekResult
+from teaser_league_backend.logic.users import Users
 
 engine = create_engine('sqlite:///sqlalchemy_example.db')
 
@@ -32,10 +34,5 @@ session = DBSession()
 
 #                        .filter(TeamWeek.busted == True)\
 
-print(session.query(Picks.username)\
-              .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
-              .filter(Picks.username == 'Chris Farrell')\
-              .filter(TeamWeek.week == 2)\
-              .filter(TeamWeek.busted == True)\
-              .count())
+print(session.query(Users).filter(Users.username=='Chris Farrell').filter(Users.password=='pChris Farrell').count())
 
