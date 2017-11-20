@@ -8,6 +8,6 @@ make start-dev
 
 Example curls:  
 curl http://127.0.0.1:5000/leaderboard  
-curl http://127.0.0.1:5000/list_of_weeks/farrell  
-curl http://127.0.0.1:5000/weekly_picks/2/woods  
-curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/make_picks/2/woods -d '["GB", "SF"]'  
+curl http://127.0.0.1:5000/list_of_weeks/username  
+curl http://127.0.0.1:5000/weekly_picks/2/username  
+curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/make_picks/2/username -d '["GB", "SF"]'  

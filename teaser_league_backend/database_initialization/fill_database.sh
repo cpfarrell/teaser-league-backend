@@ -1,3 +1,4 @@
+rm sqlalchemy_example.db
 python -m teaser_league_backend.database_initialization.creator
 python -m teaser_league_backend.database_initialization.pull_games_from_spreadsheets
 python -m teaser_league_backend.database_initialization.pull_picks_from_spreadsheets
