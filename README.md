@@ -1,7 +1,7 @@
 To run project. Need to have python and virtualenv installed (pip install virtualenv). Then run
 
 virtualenv virtualenv_run  
-'source virtualenv_run/bin/activate  
+source virtualenv_run/bin/activate  
 pip install -r requirements.txt  
 export FLASK_APP=teaser_league_backend/webapp.py  
 make start-dev  
