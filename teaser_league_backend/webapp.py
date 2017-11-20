@@ -31,12 +31,6 @@ session = DBSession()
 
 WEEKLY_BET = 15
 
-AUTH = {
-        'woods': 'pwoods',
-        'farrell': 'pfarrell',
-        'ngoyal': 'pngoyal',
-}
-
 def authenticate_user(username, password):
     login_success = session.query(Users).filter(Users.username=='Chris Farrell').filter(Users.password=='pChris Farrell').count() == 1
     print('Login was {}'.format('successful' if login_success else 'unsuccessful'))
