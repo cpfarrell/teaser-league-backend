@@ -2,6 +2,7 @@ import datetime
 import pytz
 
 import requests
+from sqlalchemy.orm.exc import FlushError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -41,7 +42,7 @@ for week, gid in week_to_gid.items():
             full_string = pick_row[pick_index]
             if full_string != '':
                 team_string = full_string[:full_string.index('@') - 1]            
-                team_acronym = team_name_to_acronym[team_string]
+                team_acronym = team_name_to_acronym[team_string.lower()]
 
                 # This is one piece of bad data in the spreadsheets...
                 if username == 'Ravi & Brad' and week == 2 and pick_index == 16: 
@@ -56,5 +57,9 @@ for week, gid in week_to_gid.items():
                 )
 
 for row in all_insertable_rows:
-    session.add(row)
-    session.commit()
+    try:
+        session.add(row)
+        session.commit()
+    except FlushError:
+        print("Couldn't import row. Week: {}, Username: {}, Team: {}".format(row.week, row.username, row.team))
+        session.rollback()

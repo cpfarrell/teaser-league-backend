@@ -36,3 +36,9 @@ session = DBSession()
 
 print(session.query(Users).filter(Users.username=='Chris Farrell').filter(Users.password=='pChris Farrell').count())
 
+#for result in session.query(TeamWeek, Picks)\
+#                        .outerjoin(Picks, and_(Picks.team==TeamWeek.team, Picks.week==TeamWeek.week, Picks.username=="Chris Farrell"))\
+#                        .filter(TeamWeek.week==12)\
+#                        .order_by(TeamWeek.game_time, TeamWeek.game_id)\
+#                        .all():
+#    print(str(result.TeamWeek.team) + " " + str(result.TeamWeek.game_time))

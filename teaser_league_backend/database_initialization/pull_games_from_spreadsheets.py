@@ -41,21 +41,26 @@ for week, gid in week_to_gid.items():
     for i, row in enumerate(team_rows):
         road_team_id, home_team_id = [i, i+1] if i%2==0 else [i-1, i]
         full_game_time_string = team_rows[road_team_id][1] + team_rows[home_team_id][1]
-        road_team = team_name_to_acronym[team_rows[road_team_id][2]]
-        home_team = team_name_to_acronym[team_rows[home_team_id][2]]        
+        road_team = team_name_to_acronym[team_rows[road_team_id][2].lower()]
+        home_team = team_name_to_acronym[team_rows[home_team_id][2].lower()]
         game_id = '_'.join([road_team, home_team, str(week)])
 
         team_dicts.append(
             {
                 'game_id': global_id_counter,
                 'week': week,
-                'team': team_name_to_acronym[row[2]],
+                'team': team_name_to_acronym[row[2].lower()],
                 'vegas_spread': row[3],
                 'adjusted_spread': row[4],
-                'game_time': datetime.datetime.strptime(full_game_time_string, '%A, %m/%d %H:%M %p').replace(year=2017),
-                'score': row[6],
+                'game_time': datetime.datetime.strptime(full_game_time_string, '%A, %m/%d %I:%M %p').replace(year=2017),
+
+                'game_final': False,
+
+                'spreadsheet_score': row[6] if row[6] else None,
                 # Field from google docs is covered which is the opposite of busted.
-                'busted': False if row[7]!='FALSE' else True,
+                'spreadsheet_busted': False if row[7]!='FALSE' else True,
+                # Spreadsheet only sets the score when game is over so if something there than game is over.
+                'spreadsheet_game_final': bool(row[6]),
             }
         )
         global_id_counter += 1
