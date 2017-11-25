@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from teaser_league_backend.constants import team_name_to_acronym
 from teaser_league_backend.constants import week_to_gid
+from teaser_league_backend.constants import CURRENT_YEAR
 import teaser_league_backend.database_initialization.creator
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.team_week import TeamWeek
@@ -52,7 +53,7 @@ for week, gid in week_to_gid.items():
                 'team': team_name_to_acronym[row[2].lower()],
                 'vegas_spread': row[3],
                 'adjusted_spread': row[4],
-                'game_time': datetime.datetime.strptime(full_game_time_string, '%A, %m/%d %I:%M %p').replace(year=2017),
+                'game_time': datetime.datetime.strptime(full_game_time_string, '%A, %m/%d %I:%M %p').replace(year=CURRENT_YEAR),
 
                 'game_final': False,
 
