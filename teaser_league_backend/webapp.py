@@ -1,5 +1,6 @@
 from datetime import datetime
 import hashlib
+import time
 
 from flask import Flask
 from flask import jsonify
@@ -32,7 +33,7 @@ session = DBSession()
 WEEKLY_BET = 15
 
 def authenticate_user(username, password):
-    login_success = session.query(Users).filter(Users.username=='Chris Farrell').filter(Users.password=='pChris Farrell').count() == 1
+    login_success = session.query(Users).filter(Users.username==username).filter(Users.password==password).count() == 1
     print('Login was {}'.format('successful' if login_success else 'unsuccessful'))
     return login_success
 
@@ -73,6 +74,7 @@ def list_of_weeks(username):
 
 @app.route('/weekly_picks/<week>/<username>')
 def week_breakdown(week, username):
+    start = time.time()
     teams = []
     for result in session.query(TeamWeek, Picks)\
                         .outerjoin(Picks, and_(Picks.team==TeamWeek.team, Picks.week==TeamWeek.week, Picks.username==username))\
@@ -86,16 +88,18 @@ def week_breakdown(week, username):
                 'spread': result.TeamWeek.adjusted_spread,
                 'pick': '' if result.Picks is None else 'X',
                 'score': result.TeamWeek.score,
-                'busted': 'X' if result.TeamWeek.busted else '',
+                'busted': get_busted_string(result.TeamWeek),
                 'locked': result.TeamWeek.game_time < datetime.now()
             }
         )
+    print("Time to get weekly picks:  {} seconds".format(time.time() - start))
     return jsonify(teams)
 
 # This should be a check against active sessions on a backend, looking for timeouts.
 def pick_is_for_current_user_or_user_is_admin(username, id_token):
     """ Doesn't check for admin mode yet! """
     print("Auth Check: (%s):" % username, generate_user_token(username), id_token)
+    print ("Username {}, Expected: {}, passed in token: {}".format(username, generate_user_token(username), id_token))
     return generate_user_token(username) == id_token
 
 @app.route('/make_picks/<week>/<username>', methods = ['POST'])
@@ -134,7 +138,7 @@ def num_won_in_week(week):
 def num_loss_in_week(week):
     return session.query(Picks.username)\
                         .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
-                        .filter(TeamWeek.busted == True)\
+                        .filter(busted(TeamWeek))\
                         .filter(TeamWeek.week == week)\
                         .distinct()\
                         .count()
@@ -145,7 +149,7 @@ def user_lost_in_week(week, username):
               .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
                         .filter(Picks.username == username)\
                         .filter(TeamWeek.week == week)\
-                        .filter(TeamWeek.busted == True)\
+                        .filter(busted(TeamWeek))\
                         .distinct()\
                         .scalar() is not None
 
@@ -154,5 +158,20 @@ def penalty_for_week(week, username):
               .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
               .filter(Picks.username == 'Chris Farrell')\
               .filter(TeamWeek.week == 2)\
-              .filter(TeamWeek.busted == True)\
+              .filter(busted(TeamWeek))\
               .count() > 1
+
+def get_busted_string(team_week):
+    currently_busting = busted(team_week)
+    if currently_busting and team_week.game_final:
+        return 'Bust'
+    elif currently_busting and not team_week.game_final:
+        return 'Close'
+    else:
+        return ''
+
+def busted(team_week):
+    if team_week.score is None or team_week.opponent_score is None:
+        return False
+    else:
+        return (team_week.score + team_week.adjusted_spread) <= team_week.opponent_score
