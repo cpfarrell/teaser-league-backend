@@ -5,6 +5,7 @@ import requests
 from sqlalchemy.orm.exc import FlushError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import and_
 
 from teaser_league_backend.constants import week_to_gid
 from teaser_league_backend.constants import team_name_to_acronym
@@ -17,14 +18,10 @@ engine = create_engine('sqlite:///sqlalchemy_example.db')
 Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
-# A DBSession() instance establishes all conversations with the database
-# and represents a "staging zone" for all the objects loaded into the
-# database session object. Any change made against the objects in the
-# session won't be persisted into the database until you call
-# session.commit(). If you're not happy about the changes, you can
-# revert all of them back to the last commit by calling
-# session.rollback()
 session = DBSession()
+
+# First remove all existing picks
+session.query(Picks).delete()
 
 all_insertable_rows = []
 for week, gid in week_to_gid.items():
@@ -56,10 +53,8 @@ for week, gid in week_to_gid.items():
                     )
                 )
 
-for row in all_insertable_rows:
-    try:
+for row in set(all_insertable_rows):
+    if not session.query(Picks).filter(and_(Picks.username==row.username, Picks.week==row.week, Picks.team==row.team)).first():
         session.add(row)
-        session.commit()
-    except FlushError:
-        print("Couldn't import row. Week: {}, Username: {}, Team: {}".format(row.week, row.username, row.team))
-        session.rollback()
+
+session.commit()
