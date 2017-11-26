@@ -75,6 +75,7 @@ def list_of_weeks(username):
 @app.route('/weekly_picks/<week>/<username>')
 def week_breakdown(week, username):
     start = time.time()
+    response = {}
     teams = []
     for result in session.query(TeamWeek, Picks)\
                         .outerjoin(Picks, and_(Picks.team==TeamWeek.team, Picks.week==TeamWeek.week, Picks.username==username))\
@@ -89,11 +90,17 @@ def week_breakdown(week, username):
                 'pick': '' if result.Picks is None else 'X',
                 'score': result.TeamWeek.score,
                 'busted': get_busted_string(result.TeamWeek),
-                'locked': result.TeamWeek.game_time < datetime.now()
+                'locked': result.TeamWeek.game_time < datetime.now(),
+                'picks': num_picked_team_week(result.TeamWeek),
             }
         )
+    response['teams'] = teams
+    response['losers'] = losers_for_week(week, only_final=True)
+    response['losers_if_scores_hold'] = losers_for_week(week, only_final=False)
+    response['penalties'] = penalties_for_week(week, only_final=True, num_losses=2)
+
     print("Time to get weekly picks:  {} seconds".format(time.time() - start))
-    return jsonify(teams)
+    return jsonify(response)
 
 # This should be a check against active sessions on a backend, looking for timeouts.
 def pick_is_for_current_user_or_user_is_admin(username, id_token):
@@ -156,22 +163,58 @@ def user_lost_in_week(week, username):
 def penalty_for_week(week, username):
     return session.query(Picks.username)\
               .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
-              .filter(Picks.username == 'Chris Farrell')\
-              .filter(TeamWeek.week == 2)\
+              .filter(Picks.username == username)\
+              .filter(TeamWeek.week == week)\
               .filter(busted(TeamWeek))\
               .count() > 1
 
+def num_picked_team_week(team_week):
+    return session.query(Picks)\
+        .filter(and_(Picks.week==team_week.week, Picks.team==team_week.team))\
+        .count()
+
 def get_busted_string(team_week):
-    currently_busting = busted(team_week)
-    if currently_busting and team_week.game_final:
-        return 'Bust'
-    elif currently_busting and not team_week.game_final:
-        return 'Close'
+    relative_score = score_relative_to_adjusted_spread(team_week)
+    # currently_busting = busted(team_week)
+    if relative_score is None:
+        return ''
+    elif relative_score <= 0 and team_week.game_final:
+        return 'Busted'
+    elif relative_score <= 0 and not team_week.game_final:
+        return 'Busting'
+    elif relative_score <= 7:
+        return "Close"
     else:
         return ''
 
-def busted(team_week):
+def score_relative_to_adjusted_spread(team_week):
+    # Score difference plus adjusted spread.
+    # So negative means not covering, positive is covering, and zero is push.
+    # Returns None if game has not started
     if team_week.score is None or team_week.opponent_score is None:
-        return False
+        return None
     else:
-        return (team_week.score + team_week.adjusted_spread) <= team_week.opponent_score
+        return (team_week.score - team_week.opponent_score) + team_week.adjusted_spread
+
+def busted(team_week, final_scores_only=False):
+    relative_score = score_relative_to_adjusted_spread(team_week)
+    return relative_score is not None and relative_score <= 0
+
+def losers_for_week(week, only_final=True):
+    return [loser.username for loser in session.query(Picks.username)\
+        .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
+        .filter(TeamWeek.week == week)\
+        .filter(busted(TeamWeek))\
+        .filter(TeamWeek.game_final or not only_final)
+        .distinct()\
+        .all()]
+
+def penalties_for_week(week, only_final=True, num_losses=0):
+    return [loser.username for loser in session.query(Picks.username)\
+        .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
+        .filter(TeamWeek.week == week)\
+        .filter(busted(TeamWeek))\
+        .filter(TeamWeek.game_final or not only_final)
+        .group_by(Picks.username)\
+        .having(func.count() >= num_losses)\
+        .all()]
