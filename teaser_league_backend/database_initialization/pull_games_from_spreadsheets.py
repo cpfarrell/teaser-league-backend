@@ -29,6 +29,9 @@ session = DBSession()
 
 global_id_counter = 0
 
+# First delete all current weeks in database
+session.query(TeamWeek).delete()
+
 all_insertable_rows = []
 for week, gid in week_to_gid.items():
     response = requests.get('https://docs.google.com/spreadsheets/d/1Toaij3ONlMAVtIXKAkYuRpTagH_Fbj-njx4SArRlRGI/export?gid={}&format=tsv'.format(gid))
