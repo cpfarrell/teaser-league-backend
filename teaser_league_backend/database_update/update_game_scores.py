@@ -36,6 +36,7 @@ def update_team_score(week, team, score, opponent_score, final):
     team_week.game_final = final
 
 def update_scores():
+    # Remove the filter if you recreate database to get all past scores.
     for team_week in session.query(TeamWeek)\
             .filter(and_(TeamWeek.game_final == False, TeamWeek.game_time < datetime.now()))\
             .group_by(TeamWeek.week)\
