@@ -10,6 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
 from sqlalchemy import and_
+from sqlalchemy import or_
 from sqlalchemy import exists
 
 from teaser_league_backend.logic.base import Base
@@ -18,7 +19,6 @@ from teaser_league_backend.logic.game import Game
 from teaser_league_backend.logic.user_week_result import UserWeekResult
 from teaser_league_backend.logic.picks import Picks
 from teaser_league_backend.logic.users import Users
-import teaser_league_backend.logic.team_week
 
 
 app = Flask(__name__)
@@ -201,20 +201,14 @@ def busted(team_week, final_scores_only=False):
     return relative_score is not None and relative_score <= 0
 
 def losers_for_week(week, only_final=True):
-    return [loser.username for loser in session.query(Picks.username)\
-        .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
-        .filter(TeamWeek.week == week)\
-        .filter(busted(TeamWeek))\
-        .filter(TeamWeek.game_final or not only_final)
-        .distinct()\
-        .all()]
+    return penalties_for_week(week, only_final=only_final, num_losses=1)
 
 def penalties_for_week(week, only_final=True, num_losses=0):
     return [loser.username for loser in session.query(Picks.username)\
         .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
         .filter(TeamWeek.week == week)\
         .filter(busted(TeamWeek))\
-        .filter(TeamWeek.game_final or not only_final)
+        .filter(or_(TeamWeek.game_final, not only_final))
         .group_by(Picks.username)\
         .having(func.count() >= num_losses)\
         .all()]
