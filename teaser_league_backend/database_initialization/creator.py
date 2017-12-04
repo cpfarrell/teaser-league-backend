@@ -13,4 +13,6 @@ engine = create_engine('sqlite:///sqlalchemy_example.db')
  
 # Create all tables in the engine. This is equivalent to "Create Table"
 # statements in raw SQL.
+for tbl in reversed(Base.metadata.sorted_tables):
+    engine.execute(tbl.delete())
 Base.metadata.create_all(engine)

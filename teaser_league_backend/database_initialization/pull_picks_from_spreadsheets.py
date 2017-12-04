@@ -34,7 +34,6 @@ for week, gid in week_to_gid.items():
 
     for pick_row in pick_rows:
         username =  pick_row[12]
-
         for pick_index in range(14, 18):
             full_string = pick_row[pick_index]
             if full_string != '':

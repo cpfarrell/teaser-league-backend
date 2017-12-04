@@ -37,18 +37,20 @@ session = DBSession()
 
 #print(session.query(Users).filter(Users.username=='Chris Farrell').filter(Users.password=='pChris Farrell').count())
 
+for team_week in session.query(TeamWeek).all():
+    print team_week.team
+
 #for result in session.query(TeamWeek, Picks)\
-#                        .outerjoin(Picks, and_(Picks.team==TeamWeek.team, Picks.week==TeamWeek.week, Picks.username=="Chris Farrell"))\
-#                        .filter(TeamWeek.week==12)\
+#                        .outerjoin(Picks, and_(Picks.team==TeamWeek.team, Picks.week==TeamWeek.week))\
 #                        .order_by(TeamWeek.game_time, TeamWeek.game_id)\
 #                        .all():
 #    print(str(result.TeamWeek.team) + " " + str(result.TeamWeek.game_time))
 
-only_final=False
-print [loser.username for loser in session.query(Picks.username)\
-        .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
-        .filter(TeamWeek.week == 13)\
-        .filter(busted(TeamWeek))\
-        .filter(or_(TeamWeek.game_final, not only_final))
-        .distinct()\
-        .all()]
+#only_final=False
+#print [loser.username for loser in session.query(Picks.username)\
+#        .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
+#        .filter(TeamWeek.week == 13)\
+#        .filter(busted(TeamWeek))\
+#        .filter(or_(TeamWeek.game_final, not only_final))
+#        .distinct()\
+#        .all()]

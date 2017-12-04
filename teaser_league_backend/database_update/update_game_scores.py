@@ -1,3 +1,4 @@
+import argparse
 from datetime import datetime
 import pytz
 
@@ -6,11 +7,11 @@ import requests
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import and_
+from sqlalchemy import or_
 
 from teaser_league_backend.constants import team_name_to_acronym
 from teaser_league_backend.constants import week_to_gid
 from teaser_league_backend.constants import CURRENT_YEAR
-import teaser_league_backend.database_initialization.creator
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.team_week import TeamWeek
 
@@ -35,10 +36,12 @@ def update_team_score(week, team, score, opponent_score, final):
     team_week.opponent_score = opponent_score
     team_week.game_final = final
 
-def update_scores():
-    # Remove the filter if you recreate database to get all past scores.
+#
+
+
+def update_scores(pull_all=False):
     for team_week in session.query(TeamWeek)\
-            .filter(and_(TeamWeek.game_final == False, TeamWeek.game_time < datetime.now()))\
+            .filter(or_(and_(TeamWeek.game_final == False, TeamWeek.game_time < datetime.now()), pull_all))\
             .group_by(TeamWeek.week)\
             .all():
         for game in nflgame.games(CURRENT_YEAR, week=team_week.week):
@@ -47,5 +50,8 @@ def update_scores():
 
     session.commit()
 
-update_scores()
+parser = argparse.ArgumentParser()
+parser.add_argument('--pull-all', action='store_true')
+args = parser.parse_args()
+update_scores(pull_all=args.pull_all)
 
