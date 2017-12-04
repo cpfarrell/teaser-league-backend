@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from datetime import datetime
 import hashlib
 import time
@@ -182,8 +184,10 @@ def get_busted_string(team_week):
         return 'Busted'
     elif relative_score <= 0 and not team_week.game_final:
         return 'Busting'
-    elif relative_score <= 7:
+    elif relative_score <= 7 and not team_week.game_final:
         return "Close"
+    elif relative_score > 0 and team_week.game_final:
+        return "√"
     else:
         return ''
 
