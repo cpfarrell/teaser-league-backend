@@ -59,17 +59,17 @@ def login():
 def leaderboard():
     scores = []
     for username, in session.query(Picks.username).distinct():
-        total_profit = 0
+        total_points = 0
         for week, in session.query(TeamWeek.week).distinct().order_by(TeamWeek.week):
-            total_profit += get_won_loss_for_week(week, username)
-        scores.append({'username': username, 'profit': total_profit})
-    return jsonify(sorted(scores, key=lambda k: k['profit'], reverse=True))
+            total_points += get_won_loss_for_week(week, username)
+        scores.append({'username': username, 'points': total_points})
+    return jsonify(sorted(scores, key=lambda k: k['points'], reverse=True))
 
 @app.route('/list_of_weeks/<username>')
 def list_of_weeks(username):
     weeks = []
     for week, in session.query(TeamWeek.week).distinct().order_by(TeamWeek.week):
-        weeks.append({'week': week, 'profit': get_won_loss_for_week(week, username)})
+        weeks.append({'week': week, 'points': get_won_loss_for_week(week, username)})
     return jsonify(weeks)
 
 @app.route('/weekly_picks/<week>/<username>')
