@@ -12,7 +12,7 @@ import teaser_league_backend.database_initialization.creator
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.team_week import TeamWeek
 
-engine = create_engine('sqlite:///sqlalchemy_example.db')
+engine = create_engine('sqlite:///sqlalchemy_example.db', connect_args={'timeout': 75})
 # Bind the engine to the metadata of the Base class so that the
 # declaratives can be accessed through a DBSession instance
 Base.metadata.bind = engine

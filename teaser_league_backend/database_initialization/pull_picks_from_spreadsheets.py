@@ -11,8 +11,9 @@ from teaser_league_backend.constants import week_to_gid
 from teaser_league_backend.constants import team_name_to_acronym
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.picks import Picks
+from teaser_league_backend.database_initialization.utils import normalize_username
 
-engine = create_engine('sqlite:///sqlalchemy_example.db')
+engine = create_engine('sqlite:///sqlalchemy_example.db', connect_args={'timeout': 75})
 # Bind the engine to the metadata of the Base class so that the
 # declaratives can be accessed through a DBSession instance
 Base.metadata.bind = engine
@@ -46,7 +47,7 @@ for week, gid in week_to_gid.items():
 
                 all_insertable_rows.append(
                     Picks(
-                        username=username,
+                        username=normalize_username(username),
                         week=week,
                         team=team_acronym,
                     )

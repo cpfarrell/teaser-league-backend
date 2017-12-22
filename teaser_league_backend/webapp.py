@@ -62,6 +62,7 @@ def leaderboard():
     scores = []
     for username, in session.query(Picks.username).distinct():
         total_points = 0
+
         for week, in session.query(TeamWeek.week).distinct().order_by(TeamWeek.week):
             total_points += get_won_loss_for_week(week, username)
         scores.append({'username': username, 'points': total_points})
@@ -94,6 +95,7 @@ def week_breakdown(week, username):
                 'busted': get_busted_string(result.TeamWeek),
                 'locked': result.TeamWeek.game_time < datetime.now(),
                 'picks': num_picked_team_week(result.TeamWeek),
+                'users_who_picked': users_who_picked_team_in_week(result.TeamWeek),
             }
         )
     response['teams'] = teams
@@ -131,17 +133,12 @@ def make_picks(week, username):
 def get_won_loss_for_week(week, username):
     if user_lost_in_week(week, username):
         basic_loss = num_won_in_week(week) * WEEKLY_BET * -1
-        return basic_loss + (20 * penalty_for_week(week, username))
+        return basic_loss - (20 * was_in_penalty_for_week(week, username))
     else:
-        return num_loss_in_week(week) * WEEKLY_BET
+        return len(losers_for_week(week)) * WEEKLY_BET
 
 def num_won_in_week(week):
-    total_users = session.query(Picks.username)\
-                        .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
-                        .filter(TeamWeek.week == week)\
-                        .distinct()\
-                        .count()
-
+    total_users = session.query(Users).count()
     return total_users - num_loss_in_week(week)
 
 def num_loss_in_week(week):
@@ -159,10 +156,11 @@ def user_lost_in_week(week, username):
                         .filter(Picks.username == username)\
                         .filter(TeamWeek.week == week)\
                         .filter(busted(TeamWeek))\
+                        .filter(TeamWeek.game_final)\
                         .distinct()\
                         .scalar() is not None
 
-def penalty_for_week(week, username):
+def was_in_penalty_for_week(week, username):
     return session.query(Picks.username)\
               .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
               .filter(Picks.username == username)\
@@ -170,21 +168,21 @@ def penalty_for_week(week, username):
               .filter(busted(TeamWeek))\
               .count() > 1
 
+def users_who_picked_team_in_week(team_week):
+    return [user[0] for user in session.query(Picks.username).filter(and_(Picks.week==team_week.week, Picks.team==team_week.team))]
+
 def num_picked_team_week(team_week):
-    return session.query(Picks)\
-        .filter(and_(Picks.week==team_week.week, Picks.team==team_week.team))\
-        .count()
+    return  len(users_who_picked_team_in_week(team_week))
 
 def get_busted_string(team_week):
     relative_score = score_relative_to_adjusted_spread(team_week)
-    # currently_busting = busted(team_week)
     if relative_score is None:
         return ''
     elif relative_score <= 0 and team_week.game_final:
         return 'Busted'
-    elif relative_score <= 0 and not team_week.game_final:
+    elif relative_score <= 0 and not team_week.game_final and datetime.now() > team_week.game_time:
         return 'Busting'
-    elif relative_score <= 7 and not team_week.game_final:
+    elif relative_score <= 7 and not team_week.game_final and datetime.now() > team_week.game_time:
         return "Close"
     elif relative_score > 0 and team_week.game_final:
         return "√"
@@ -200,7 +198,8 @@ def score_relative_to_adjusted_spread(team_week):
     else:
         return (team_week.score - team_week.opponent_score) + team_week.adjusted_spread
 
-def busted(team_week, final_scores_only=False):
+def busted(team_week):
+    """Calculates whether the team is busting, whether game is final or not."""
     relative_score = score_relative_to_adjusted_spread(team_week)
     return relative_score is not None and relative_score <= 0
 

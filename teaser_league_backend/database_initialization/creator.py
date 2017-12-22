@@ -9,7 +9,7 @@ import teaser_league_backend.logic.users
 
 # Create an engine that stores data in the local directory's
 # sqlalchemy_example.db file.
-engine = create_engine('sqlite:///sqlalchemy_example.db')
+engine = create_engine('sqlite:///sqlalchemy_example.db', connect_args={'timeout': 75})
  
 # Create all tables in the engine. This is equivalent to "Create Table"
 # statements in raw SQL.

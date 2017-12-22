@@ -1,3 +1,5 @@
+import pprint
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
@@ -12,6 +14,9 @@ from teaser_league_backend.logic.picks import Picks
 from teaser_league_backend.logic.user_week_result import UserWeekResult
 from teaser_league_backend.logic.users import Users
 from teaser_league_backend.webapp import busted
+from teaser_league_backend.webapp import get_won_loss_for_week
+
+pp = pprint.PrettyPrinter(indent=4)
 
 engine = create_engine('sqlite:///sqlalchemy_example.db')
 
@@ -37,8 +42,18 @@ session = DBSession()
 
 #print(session.query(Users).filter(Users.username=='Chris Farrell').filter(Users.password=='pChris Farrell').count())
 
-for team_week in session.query(TeamWeek).all():
-    print team_week.team
+#scores = []
+#for username, in session.query(Picks.username).distinct():
+#    total_points = 0
+#    for week, in session.query(TeamWeek.week).distinct().order_by(TeamWeek.week):
+#        total_points += get_won_loss_for_week(week, username)
+#    scores.append({'username': username, 'points': total_points})
+#pp.pprint(sorted(scores, key=lambda k: k['points'], reverse=True))
+
+weeks = []
+for week, in session.query(TeamWeek.week).distinct().order_by(TeamWeek.week):
+   weeks.append({'week': week, 'points': get_won_loss_for_week(week, "Chris Farrell")})
+pp.pprint(weeks)
 
 #for result in session.query(TeamWeek, Picks)\
 #                        .outerjoin(Picks, and_(Picks.team==TeamWeek.team, Picks.week==TeamWeek.week))\
