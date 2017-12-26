@@ -16,12 +16,6 @@ class TeamWeek(Base):
     vegas_spread = Column(Float, nullable=False)
     adjusted_spread = Column(Float, nullable=False)
     game_time = Column(DateTime, nullable=False)
-
     score = Column(Integer, nullable=True)
     opponent_score = Column(Integer, nullable=True)
     game_final = Column(Boolean, nullable=False)
-
-    # To be replaced by nflgames
-    spreadsheet_score = Column(Integer, nullable=True)
-    spreadsheet_busted = Column(Boolean, nullable=True)
-    spreadsheet_game_final = Column(Boolean, nullable=False)

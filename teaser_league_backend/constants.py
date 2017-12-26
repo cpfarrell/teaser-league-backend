@@ -1,3 +1,5 @@
+import pytz
+
 team_name_to_acronym = {
     'houston': 'HOU', 
     'carolina': 'CAR',
@@ -54,3 +56,5 @@ week_to_gid = {
 }
 
 CURRENT_YEAR = 2017
+
+NEW_YORK_TIMEZONE = pytz.timezone('America/New_York')

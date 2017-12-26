@@ -7,11 +7,11 @@ import time
 from flask import Flask
 from flask import jsonify
 from flask import request
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
 from sqlalchemy import and_
+from sqlalchemy import not_
 from sqlalchemy import or_
 from sqlalchemy import exists
 
@@ -102,6 +102,7 @@ def week_breakdown(week, username):
     response['losers'] = losers_for_week(week, only_final=True)
     response['losers_if_scores_hold'] = losers_for_week(week, only_final=False)
     response['penalties'] = penalties_for_week(week, only_final=True, num_losses=2)
+    response['winners'] = winners_for_week(week)
 
     print("Time to get weekly picks:  {} seconds".format(time.time() - start))
     return jsonify(response)
@@ -214,4 +215,14 @@ def penalties_for_week(week, only_final=True, num_losses=0):
         .filter(or_(TeamWeek.game_final, not only_final))
         .group_by(Picks.username)\
         .having(func.count() >= num_losses)\
+        .all()]
+
+def winners_for_week(week, picks_needed_to_win=4):
+    return [winner.username for winner in session.query(Picks.username)\
+        .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
+        .filter(TeamWeek.week == week)\
+        .filter(not_(busted(TeamWeek)))\
+        .filter(TeamWeek.game_final)
+        .group_by(Picks.username)\
+        .having(func.count() == picks_needed_to_win)\
         .all()]

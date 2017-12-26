@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from teaser_league_backend.constants import team_name_to_acronym
 from teaser_league_backend.constants import week_to_gid
 from teaser_league_backend.constants import CURRENT_YEAR
+from teaser_league_backend.constants import NEW_YORK_TIMEZONE
 import teaser_league_backend.database_initialization.creator
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.team_week import TeamWeek
@@ -56,15 +57,8 @@ for week, gid in week_to_gid.items():
                 'team': team_name_to_acronym[row[2].lower()],
                 'vegas_spread': row[3],
                 'adjusted_spread': row[4],
-                'game_time': datetime.datetime.strptime(full_game_time_string, '%A, %m/%d %I:%M %p').replace(year=CURRENT_YEAR),
-
+                'game_time': NEW_YORK_TIMEZONE.localize(datetime.datetime.strptime(full_game_time_string, '%A, %m/%d %I:%M %p').replace(year=CURRENT_YEAR)).astimezone(pytz.utc),
                 'game_final': False,
-
-                'spreadsheet_score': row[6] if row[6] else None,
-                # Field from google docs is covered which is the opposite of busted.
-                'spreadsheet_busted': False if row[7]!='FALSE' else True,
-                # Spreadsheet only sets the score when game is over so if something there than game is over.
-                'spreadsheet_game_final': bool(row[6]),
             }
         )
         global_id_counter += 1
