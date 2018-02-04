@@ -59,8 +59,7 @@ def login():
     ret = {'status': 'fail', 'ERROR': 'sad face'};
     return jsonify(ret);
 
-
-@app.route('/leaderboard/<league_id>')
+@app.route('/leaderboard/<league_id>/')
 def leaderboard(league_id):
     start = time.time()
     rankings = _leaderboard(league_id)
@@ -82,15 +81,15 @@ def weeks_in_league(league_id):
     for week, in session.query(TeamWeek.week).filter(and_(TeamWeek.year==sports_year, TeamWeek.sports_league==sports_league)).distinct().order_by(TeamWeek.week):
         yield week
 
-@app.route('/list_of_weeks/<league_id>/<username>')
-def list_of_weeks(league_id, username):
+@app.route('/list_of_weeks/<league_id>/<username>/')
+def list_of_weeks(username, league_id):
     weeks = []
     for week, in session.query(TeamWeek.week).distinct().order_by(TeamWeek.week):
         weeks.append({'week': week, 'points': get_won_loss_for_week(week, username, league_id)})
     return jsonify(weeks)
 
-@app.route('/weekly_picks/<league_id>/<week>/<username>')
-def week_breakdown(league_id, week, username):
+@app.route('/weekly_picks/<league_id>/<week>/<username>/')
+def week_breakdown(week, username, league_id):
     start = time.time()
     response = {}
     teams = []
