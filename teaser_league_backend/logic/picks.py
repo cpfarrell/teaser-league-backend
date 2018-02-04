@@ -11,6 +11,7 @@ from teaser_league_backend.logic.base import Base
 
 class Picks(Base):
     __tablename__ = 'picks'
+    teaser_league_id = Column(Integer, primary_key=True)
     username = Column(String(50), primary_key=True)
     week = Column(Integer, primary_key=True)
     team = Column(String(25), primary_key=True)

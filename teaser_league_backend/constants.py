@@ -59,3 +59,6 @@ week_to_gid = {
 CURRENT_YEAR = 2017
 
 NEW_YORK_TIMEZONE = pytz.timezone('America/New_York')
+
+NFL_LEAGUE_NAME = 'nfl'
+MAIN_TEASER_LEAGUE_2017_ID = '2017TL'

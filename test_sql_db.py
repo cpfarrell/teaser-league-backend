@@ -9,9 +9,7 @@ from sqlalchemy import exists
 
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.team_week import TeamWeek
-from teaser_league_backend.logic.game import Game
 from teaser_league_backend.logic.picks import Picks
-from teaser_league_backend.logic.user_week_result import UserWeekResult
 from teaser_league_backend.logic.users import Users
 from teaser_league_backend.webapp import busted
 from teaser_league_backend.webapp import get_won_loss_for_week

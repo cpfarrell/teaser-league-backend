@@ -1,5 +1,6 @@
 flask
 ipdb
+nba_py
 nflgame
 pytz
 requests

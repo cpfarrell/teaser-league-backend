@@ -15,12 +15,15 @@ from sqlalchemy import not_
 from sqlalchemy import or_
 from sqlalchemy import exists
 
+from teaser_league_backend.constants import MAIN_TEASER_LEAGUE_2017_ID
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.team_week import TeamWeek
-from teaser_league_backend.logic.game import Game
-from teaser_league_backend.logic.user_week_result import UserWeekResult
+# from teaser_league_backend.logic.game import Game
+# from teaser_league_backend.logic.user_week_result import UserWeekResult
 from teaser_league_backend.logic.picks import Picks
 from teaser_league_backend.logic.users import Users
+from teaser_league_backend.logic.league_users import LeagueUsers
+from teaser_league_backend.logic.leagues import Leagues
 
 
 app = Flask(__name__)
@@ -57,36 +60,44 @@ def login():
     return jsonify(ret);
 
 
-@app.route('/leaderboard')
-def leaderboard():
+@app.route('/leaderboard/<league_id>')
+def leaderboard(league_id):
     start = time.time()
-    rankings = _leaderboard()
+    rankings = _leaderboard(league_id)
     print("Time to get leaderboard:  {} seconds".format(time.time() - start))
     return jsonify(rankings)
 
-def _leaderboard():
+def _leaderboard(league_id):
     scores = []
-    for username, in session.query(Picks.username).distinct():
+    for username, in session.query(Picks.username).filter(Picks.teaser_league_id==league_id).distinct():
         total_points = 0
-        for week, in session.query(TeamWeek.week).distinct().order_by(TeamWeek.week):
-            total_points += get_won_loss_for_week(week, username)
+        for week in weeks_in_league(league_id):
+            total_points += get_won_loss_for_week(week, username, league_id)
         scores.append({'username': username, 'points': total_points})
     return sorted(scores, key=lambda k: k['points'], reverse=True)
 
-@app.route('/list_of_weeks/<username>')
-def list_of_weeks(username):
+def weeks_in_league(league_id):
+    sports_league = session.query(Leagues.sports_league).filter(Leagues.teaser_league_id==league_id).distinct().one()[0]
+    sports_year = session.query(Leagues.sports_year).filter(Leagues.teaser_league_id==league_id).distinct().one()[0]
+    for week, in session.query(TeamWeek.week).filter(and_(TeamWeek.year==sports_year, TeamWeek.sports_league==sports_league)).distinct().order_by(TeamWeek.week):
+        yield week
+
+@app.route('/list_of_weeks/<league_id>/<username>')
+def list_of_weeks(league_id, username):
     weeks = []
     for week, in session.query(TeamWeek.week).distinct().order_by(TeamWeek.week):
-        weeks.append({'week': week, 'points': get_won_loss_for_week(week, username)})
+        weeks.append({'week': week, 'points': get_won_loss_for_week(week, username, league_id)})
     return jsonify(weeks)
 
-@app.route('/weekly_picks/<week>/<username>')
-def week_breakdown(week, username):
+@app.route('/weekly_picks/<league_id>/<week>/<username>')
+def week_breakdown(league_id, week, username):
     start = time.time()
     response = {}
     teams = []
     for result in session.query(TeamWeek, Picks)\
                         .outerjoin(Picks, and_(Picks.team==TeamWeek.team, Picks.week==TeamWeek.week, Picks.username==username))\
+                        .join(Leagues, and_(Leagues.sports_league == TeamWeek.sports_league, Leagues.sports_year == TeamWeek.year))\
+                        .filter(Leagues.teaser_league_id==league_id)\
                         .filter(TeamWeek.week==week)\
                         .order_by(TeamWeek.game_time, TeamWeek.game_id)\
                         .all():
@@ -104,15 +115,15 @@ def week_breakdown(week, username):
             }
         )
     response['teams'] = teams
-    rankings = _leaderboard()
+    #rankings = _leaderboard(league_id)
     #response['losers'] = add_rank_to_user_list(losers_for_week(week, only_final=True), rankings)
     #response['losers_if_scores_hold'] = add_rank_to_user_list(losers_for_week(week, only_final=False), rankings)
     #response['penalties'] = add_rank_to_user_list(penalties_for_week(week, only_final=True, num_losses=2), rankings)
     #response['winners'] = add_rank_to_user_list(winners_for_week(week), rankings)
 
-    response['losers'] = losers_for_week(week, only_final=True)
-    response['losers_if_scores_hold'] = losers_for_week(week, only_final=False)
-    response['penalties'] = penalties_for_week(week, only_final=True, num_losses=2)
+    response['losers'] = losers_for_week(week, league_id, only_final=True)
+    response['losers_if_scores_hold'] = losers_for_week(week, league_id, only_final=False)
+    response['penalties'] = penalties_for_week(week, league_id, only_final=True, num_losses=2)
     response['winners'] = winners_for_week(week)
 
     print("Time to get weekly picks:  {} seconds".format(time.time() - start))
@@ -150,12 +161,12 @@ def make_picks(week, username):
     session.commit()
     return jsonify({'success': True})
 
-def get_won_loss_for_week(week, username):
-    if user_lost_in_week(week, username):
+def get_won_loss_for_week(week, username, league_id):
+    if user_lost_in_week(week, username, league_id):
         basic_loss = num_won_in_week(week) * WEEKLY_BET * -1
-        return basic_loss - (20 * was_in_penalty_for_week(week, username))
+        return basic_loss - (20 * was_in_penalty_for_week(week, username, league_id))
     else:
-        return len(losers_for_week(week)) * WEEKLY_BET
+        return len(losers_for_week(week, league_id)) * WEEKLY_BET
 
 def num_won_in_week(week):
     total_users = session.query(Users).count()
@@ -170,20 +181,22 @@ def num_loss_in_week(week):
                         .count()
 
 
-def user_lost_in_week(week, username):
+def user_lost_in_week(week, username, league_id):
     return session.query(Picks.username)\
               .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
                         .filter(Picks.username == username)\
+                        .filter(Picks.teaser_league_id == league_id)\
                         .filter(TeamWeek.week == week)\
                         .filter(busted(TeamWeek))\
                         .filter(TeamWeek.game_final)\
                         .distinct()\
                         .scalar() is not None
 
-def was_in_penalty_for_week(week, username):
+def was_in_penalty_for_week(week, username, league_id):
     return session.query(Picks.username)\
               .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
               .filter(Picks.username == username)\
+              .filter(Picks.teaser_league_id == league_id)\
               .filter(TeamWeek.week == week)\
               .filter(busted(TeamWeek))\
               .count() > 1
@@ -223,12 +236,13 @@ def busted(team_week):
     relative_score = score_relative_to_adjusted_spread(team_week)
     return relative_score is not None and relative_score <= 0
 
-def losers_for_week(week, only_final=True):
-    return penalties_for_week(week, only_final=only_final, num_losses=1)
+def losers_for_week(week, league_id, only_final=True):
+    return penalties_for_week(week, league_id, only_final=only_final, num_losses=1)
 
-def penalties_for_week(week, only_final=True, num_losses=0):
+def penalties_for_week(week, league_id, only_final=True, num_losses=0):
     return [loser.username for loser in session.query(Picks.username)\
         .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
+        .join(Leagues, and_(and_(Picks.teaser_league_id==Leagues.teaser_league_id, Leagues.sports_league==TeamWeek.sports_league), Leagues.sports_year==TeamWeek.year))\
         .filter(TeamWeek.week == week)\
         .filter(busted(TeamWeek))\
         .filter(or_(TeamWeek.game_final, not only_final))
