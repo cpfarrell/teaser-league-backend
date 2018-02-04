@@ -59,14 +59,19 @@ def login():
 
 @app.route('/leaderboard')
 def leaderboard():
+    start = time.time()
+    rankings = _leaderboard()
+    print("Time to get leaderboard:  {} seconds".format(time.time() - start))
+    return jsonify(rankings)
+
+def _leaderboard():
     scores = []
     for username, in session.query(Picks.username).distinct():
         total_points = 0
-
         for week, in session.query(TeamWeek.week).distinct().order_by(TeamWeek.week):
             total_points += get_won_loss_for_week(week, username)
         scores.append({'username': username, 'points': total_points})
-    return jsonify(sorted(scores, key=lambda k: k['points'], reverse=True))
+    return sorted(scores, key=lambda k: k['points'], reverse=True)
 
 @app.route('/list_of_weeks/<username>')
 def list_of_weeks(username):
@@ -99,6 +104,12 @@ def week_breakdown(week, username):
             }
         )
     response['teams'] = teams
+    rankings = _leaderboard()
+    #response['losers'] = add_rank_to_user_list(losers_for_week(week, only_final=True), rankings)
+    #response['losers_if_scores_hold'] = add_rank_to_user_list(losers_for_week(week, only_final=False), rankings)
+    #response['penalties'] = add_rank_to_user_list(penalties_for_week(week, only_final=True, num_losses=2), rankings)
+    #response['winners'] = add_rank_to_user_list(winners_for_week(week), rankings)
+
     response['losers'] = losers_for_week(week, only_final=True)
     response['losers_if_scores_hold'] = losers_for_week(week, only_final=False)
     response['penalties'] = penalties_for_week(week, only_final=True, num_losses=2)
@@ -106,6 +117,14 @@ def week_breakdown(week, username):
 
     print("Time to get weekly picks:  {} seconds".format(time.time() - start))
     return jsonify(response)
+
+def add_rank_to_user_list(users, rankings):
+    users_with_rank = []
+    for user in users:
+        for rank, info in enumerate(rankings):
+            if info['username'] == user:
+                users_with_rank.append({'username': user, 'points': info['points'], 'rank': rank + 1})
+    return users_with_rank
 
 # This should be a check against active sessions on a backend, looking for timeouts.
 def pick_is_for_current_user_or_user_is_admin(username, id_token):
