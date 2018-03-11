@@ -18,8 +18,6 @@ from sqlalchemy import exists
 from teaser_league_backend.constants import MAIN_TEASER_LEAGUE_2017_ID
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.team_week import TeamWeek
-# from teaser_league_backend.logic.game import Game
-# from teaser_league_backend.logic.user_week_result import UserWeekResult
 from teaser_league_backend.logic.picks import Picks
 from teaser_league_backend.logic.users import Users
 from teaser_league_backend.logic.league_users import LeagueUsers
@@ -68,7 +66,7 @@ def leaderboard(league_id):
 
 def _leaderboard(league_id):
     scores = []
-    for username, in session.query(Picks.username).filter(Picks.teaser_league_id==league_id).distinct():
+    for username, in session.query(LeagueUsers.username).filter(LeagueUsers.teaser_league_id==league_id):
         total_points = 0
         for week in weeks_in_league(league_id):
             total_points += get_won_loss_for_week(week, username, league_id)
@@ -84,7 +82,11 @@ def weeks_in_league(league_id):
 @app.route('/list_of_weeks/<league_id>/<username>/')
 def list_of_weeks(username, league_id):
     weeks = []
-    for week, in session.query(TeamWeek.week).distinct().order_by(TeamWeek.week):
+    for week, in session.query(TeamWeek.week)\
+                        .join(Leagues, Leagues.sports_league==TeamWeek.sports_league)\
+                        .filter(Leagues.teaser_league_id==league_id)\
+                        .distinct()\
+                        .order_by(TeamWeek.week):
         weeks.append({'week': week, 'points': get_won_loss_for_week(week, username, league_id)})
     return jsonify(weeks)
 
@@ -123,7 +125,7 @@ def week_breakdown(week, username, league_id):
     response['losers'] = losers_for_week(week, league_id, only_final=True)
     response['losers_if_scores_hold'] = losers_for_week(week, league_id, only_final=False)
     response['penalties'] = penalties_for_week(week, league_id, only_final=True, num_losses=2)
-    response['winners'] = winners_for_week(week)
+    response['winners'] = winners_for_week(week, league_id)
 
     print("Time to get weekly picks:  {} seconds".format(time.time() - start))
     return jsonify(response)
@@ -162,13 +164,13 @@ def make_picks(week, username):
 
 def get_won_loss_for_week(week, username, league_id):
     if user_lost_in_week(week, username, league_id):
-        basic_loss = num_won_in_week(week) * WEEKLY_BET * -1
+        basic_loss = num_won_in_week(league_id, week) * WEEKLY_BET * -1
         return basic_loss - (20 * was_in_penalty_for_week(week, username, league_id))
     else:
         return len(losers_for_week(week, league_id)) * WEEKLY_BET
 
-def num_won_in_week(week):
-    total_users = session.query(Users).count()
+def num_won_in_week(league_id, week):
+    total_users = session.query(LeagueUsers).filter(LeagueUsers.teaser_league_id == league_id).count()
     return total_users - num_loss_in_week(week)
 
 def num_loss_in_week(week):
@@ -242,6 +244,7 @@ def penalties_for_week(week, league_id, only_final=True, num_losses=0):
     return [loser.username for loser in session.query(Picks.username)\
         .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
         .join(Leagues, and_(and_(Picks.teaser_league_id==Leagues.teaser_league_id, Leagues.sports_league==TeamWeek.sports_league), Leagues.sports_year==TeamWeek.year))\
+        .filter(Picks.teaser_league_id==league_id)\
         .filter(TeamWeek.week == week)\
         .filter(busted(TeamWeek))\
         .filter(or_(TeamWeek.game_final, not only_final))
@@ -249,9 +252,10 @@ def penalties_for_week(week, league_id, only_final=True, num_losses=0):
         .having(func.count() >= num_losses)\
         .all()]
 
-def winners_for_week(week, picks_needed_to_win=4):
+def winners_for_week(week, league_id, picks_needed_to_win=4):
     return [winner.username for winner in session.query(Picks.username)\
         .join(TeamWeek, and_(Picks.week==TeamWeek.week, Picks.team==TeamWeek.team))\
+        .filter(Picks.teaser_league_id==league_id)\
         .filter(TeamWeek.week == week)\
         .filter(not_(busted(TeamWeek)))\
         .filter(TeamWeek.game_final)

@@ -11,7 +11,7 @@ from teaser_league_backend.logic.base import Base
 class TeamWeek(Base):
     __tablename__ = 'team_week'
     sports_league = Column(String(25), nullable=False, primary_key=True)
-    game_id = Column(String(25), nullable=False)
+    game_id = Column(String(25), nullable=False, primary_key=True)
     week = Column(Integer, nullable=False, primary_key=True)
     year = Column(Integer, nullable=False, primary_key=True)
     team = Column(String(25), nullable=False, primary_key=True)
