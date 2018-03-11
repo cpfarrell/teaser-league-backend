@@ -5,8 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import and_
 
-from teaser_league_backend.constants import MAIN_TEASER_LEAGUE_2017_ID 
-from teaser_league_backend.constants import NFL_LEAGUE_NAME
+from teaser_league_backend.constants import MLB_TEASER_LEAGUE_NAME
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.league_users import LeagueUsers
 from teaser_league_backend.logic.picks import Picks
@@ -27,14 +26,17 @@ DBSession = sessionmaker(bind=engine)
 # session.rollback()
 session = DBSession()
 
-for username in session.query(Picks.username).filter(Picks.teaser_league_id == MAIN_TEASER_LEAGUE_2017_ID).distinct():
-    username = username[0]
-    # if not session.query(LeagueUsers).filter(and_(LeagueUsers.username==Picks.username, LeagueUsers.teaser_league_id==Picks.teaser_league_id)).first():
+# Load the users for our fake MLB league
+usernames = [
+    'Chris Farrell',
+    'Mike Woods',
+    'Naman Goyal',
+]
+for username in usernames:
     session.add(
         LeagueUsers(
-            username=normalize_username(username),
-            teaser_league_id=MAIN_TEASER_LEAGUE_2017_ID,
+            username=username,
+            teaser_league_id=MLB_TEASER_LEAGUE_NAME,
         ),
     )
-
 session.commit()

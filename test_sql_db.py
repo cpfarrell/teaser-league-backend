@@ -51,7 +51,6 @@ session = DBSession()
 
 teams = []
 for team_week in session.query(TeamWeek).filter(TeamWeek.week == 16).filter(TeamWeek.team == 'CAR'):
-   #import ipdb; ipdb.set_trace()
    get_busted_string(team_week)
    teams.append({'team': team_week.team, 'busted_string': get_busted_string(team_week)})
 pp.pprint(teams)

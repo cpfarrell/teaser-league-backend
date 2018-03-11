@@ -7,6 +7,8 @@ from sqlalchemy import and_
 
 from teaser_league_backend.constants import MAIN_TEASER_LEAGUE_2017_ID 
 from teaser_league_backend.constants import NFL_LEAGUE_NAME
+from teaser_league_backend.constants import MLB_TEASER_LEAGUE_NAME
+from teaser_league_backend.constants import MLB_LEAGUE_NAME
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.leagues import Leagues
 from teaser_league_backend.logic.picks import Picks
@@ -21,7 +23,12 @@ session = DBSession()
 session.add(Leagues(
     teaser_league_id=MAIN_TEASER_LEAGUE_2017_ID,
     sports_league=NFL_LEAGUE_NAME,
-    sports_year= 2017,
+    sports_year=2017,
+))
+session.add(Leagues(
+    teaser_league_id=MLB_TEASER_LEAGUE_NAME,
+    sports_league=MLB_LEAGUE_NAME,
+    sports_year=2018,
 ))
 
 session.commit()
