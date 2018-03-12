@@ -57,6 +57,12 @@ def login():
     ret = {'status': 'fail', 'ERROR': 'sad face'};
     return jsonify(ret);
 
+@app.route('/users/<league_id>')
+def users(league_id=None):
+    result = session.query(LeagueUsers.username).filter(LeagueUsers.teaser_league_id==league_id).all()
+    usernames = [username for (username,) in result]
+    return jsonify(usernames)
+
 @app.route('/leaderboard/<league_id>/')
 def leaderboard(league_id):
     start = time.time()
