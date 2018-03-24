@@ -63,6 +63,16 @@ def users(league_id=None):
     usernames = [username for (username,) in result]
     return jsonify(usernames)
 
+@app.route('/leagues/<user_id>')
+def leagues_per_user(user_id):
+    #result = session.query(LeagueUsers.username).filter(LeagueUsers.teaser_league_id==league_id).all()
+    result = session.query(LeagueUsers.teaser_league_id)\
+            .join(Leagues, Leagues.teaser_league_id==LeagueUsers.teaser_league_id)\
+            .filter(LeagueUsers.username==user_id)\
+            .all()
+    leagues = [league for (league,) in result]
+    return jsonify(leagues)
+
 @app.route('/leaderboard/<league_id>/')
 def leaderboard(league_id):
     start = time.time()
@@ -95,6 +105,18 @@ def list_of_weeks(username, league_id):
                         .order_by(TeamWeek.week):
         weeks.append({'week': week, 'points': get_won_loss_for_week(week, username, league_id)})
     return jsonify(weeks)
+
+@app.route('/weekly_picks/<league_id>')
+def get_num_weeks(league_id):
+    weeks = []
+    # select team_week.sports_league, COUNT(distinct team_week.week)  from team_week JOIN leagues ON team_week.sports_league = leagues.sports_league AND team_week.year=leagues.sports_year GROUP BY 1;
+    num_weeks = session.query(TeamWeek.week)\
+                        .join(Leagues, and_(Leagues.sports_league == TeamWeek.sports_league, Leagues.sports_year == TeamWeek.year))\
+                        .filter(Leagues.teaser_league_id==league_id)\
+                        .distinct()\
+                        .count()
+        #weeks.append({'week': week, 'points': get_won_loss_for_week(week, username, league_id)})
+    return jsonify({'num_weeks': num_weeks})
 
 @app.route('/weekly_picks/<league_id>/<week>/<username>/')
 def week_breakdown(week, username, league_id):
