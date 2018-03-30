@@ -63,6 +63,12 @@ def users(league_id=None):
     usernames = [username for (username,) in result]
     return jsonify(usernames)
 
+@app.route('/users')
+def all_users(league_id=None):
+    result = session.query(Users.username).all()
+    usernames = [username for (username,) in result]
+    return jsonify(usernames)
+
 @app.route('/leagues/<user_id>')
 def leagues_per_user(user_id):
     #result = session.query(LeagueUsers.username).filter(LeagueUsers.teaser_league_id==league_id).all()
