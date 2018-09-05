@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+13# -*- coding: utf-8 -*-
 
-from datetime import datetime
+import datetime
 import hashlib
 import time
 
@@ -15,7 +15,7 @@ from sqlalchemy import not_
 from sqlalchemy import or_
 from sqlalchemy import exists
 
-from teaser_league_backend.constants import MAIN_TEASER_LEAGUE_2017_ID
+from teaser_league_backend.constants import MAIN_TEASER_LEAGUE_2018_ID
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.team_week import TeamWeek
 from teaser_league_backend.logic.picks import Picks
@@ -141,10 +141,10 @@ def week_breakdown(week, username, league_id):
                 'team': result.TeamWeek.team,
                 'game_time': str(result.TeamWeek.game_time),
                 'spread': result.TeamWeek.adjusted_spread,
-                'pick': '' if result.Picks is None else 'X',
+                'pick': '' if (result.Picks is None or not pick_can_be_shown(result.TeamWeek.game_time)) else 'X',
                 'score': result.TeamWeek.score,
                 'busted': get_busted_string(result.TeamWeek),
-                'locked': result.TeamWeek.game_time < datetime.now(),
+                'locked': result.TeamWeek.game_time < datetime.datetime.now(),
                 'picks': num_picked_team_week(result.TeamWeek),
                 'users_who_picked': users_who_picked_team_in_week(result.TeamWeek),
             }
@@ -172,6 +172,17 @@ def add_rank_to_user_list(users, rankings):
                 users_with_rank.append({'username': user, 'points': info['points'], 'rank': rank + 1})
     return users_with_rank
 
+def pick_can_be_shown(game_time):
+    (
+        # Game is happening at least with the next 2 days.
+        game_time > datetime.datetime.now() + datetime.timedelta(days=365-2) and (
+            # Game is on Thursday so relese bets at 5pm.
+            (datetime.datetime.now().weekday() == 3 and datetime.datetime.now().hour >= 17)
+            # Game is on sunday so close betting at 1 pm.
+            (datetime.datetime.now().weekday() == 6 and datetime.datetime.now().hour >= 13)
+        )
+    )
+
 # This should be a check against active sessions on a backend, looking for timeouts.
 def pick_is_for_current_user_or_user_is_admin(username, id_token):
     """ Doesn't check for admin mode yet! """
@@ -183,6 +194,7 @@ def pick_is_for_current_user_or_user_is_admin(username, id_token):
 def make_picks(week, username):
     data = request.get_json()
     print(data)
+
     if not pick_is_for_current_user_or_user_is_admin(username, data['id_token']):
         print("pick auth failed for request:")
         print(data)
@@ -237,7 +249,13 @@ def was_in_penalty_for_week(week, username, league_id):
               .count() > 1
 
 def users_who_picked_team_in_week(team_week):
-    return [user[0] for user in session.query(Picks.username).filter(and_(Picks.week==team_week.week, Picks.team==team_week.team))]
+    return [user[0] for user in session.query(Picks.username).filter(
+        and_(
+            and_(Picks.week==team_week.week, Picks.team==team_week.team),
+            pick_can_be_shown(team_week.game_time)
+            ),
+        )
+    ]
 
 def num_picked_team_week(team_week):
     return  len(users_who_picked_team_in_week(team_week))
@@ -248,9 +266,9 @@ def get_busted_string(team_week):
         return ''
     elif relative_score <= 0 and team_week.game_final:
         return 'Busted'
-    elif relative_score <= 0 and not team_week.game_final and datetime.now() > team_week.game_time:
+    elif relative_score <= 0 and not team_week.game_final and datetime.datetime.now() > team_week.game_time:
         return 'Busting'
-    elif relative_score <= 7 and not team_week.game_final and datetime.now() > team_week.game_time:
+    elif relative_score <= 7 and not team_week.game_final and datetime.datetime.now() > team_week.game_time:
         return "Close"
     elif relative_score > 0 and team_week.game_final:
         return "√"

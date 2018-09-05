@@ -4,7 +4,7 @@ import pytz
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from teaser_league_backend.constants import MAIN_TEASER_LEAGUE_2017_ID 
+from teaser_league_backend.constants import MAIN_TEASER_LEAGUE_2018_ID
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.users import Users
 from teaser_league_backend.logic.picks import Picks
@@ -25,7 +25,7 @@ DBSession = sessionmaker(bind=engine)
 # session.rollback()
 session = DBSession()
 
-for username in session.query(Picks.username).filter(Picks.teaser_league_id == MAIN_TEASER_LEAGUE_2017_ID).distinct():
+for username in session.query(Picks.username).filter(Picks.teaser_league_id == MAIN_TEASER_LEAGUE_2018_ID).distinct():
     username = username[0]
     if not session.query(Users).filter(Users.username==normalize_username(username)).first():
         session.add(Users(username=normalize_username(username), password=('p' + normalize_username(username))))

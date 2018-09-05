@@ -9,7 +9,7 @@ from sqlalchemy import and_
 
 from teaser_league_backend.constants import week_to_gid
 from teaser_league_backend.constants import team_name_to_acronym
-from teaser_league_backend.constants import MAIN_TEASER_LEAGUE_2017_ID
+from teaser_league_backend.constants import MAIN_TEASER_LEAGUE_2018_ID
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.picks import Picks
 from teaser_league_backend.nfl_db.database_initialization.utils import normalize_username
@@ -23,7 +23,7 @@ DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 # Delete picks in case users changed them
-session.query(Picks).filter(Picks.teaser_league_id==MAIN_TEASER_LEAGUE_2017_ID).delete()
+session.query(Picks).filter(Picks.teaser_league_id==MAIN_TEASER_LEAGUE_2018_ID).delete()
 
 all_insertable_rows = []
 for week, gid in week_to_gid.items():
@@ -48,7 +48,7 @@ for week, gid in week_to_gid.items():
 
                 all_insertable_rows.append(
                     Picks(
-                        teaser_league_id=MAIN_TEASER_LEAGUE_2017_ID,
+                        teaser_league_id=MAIN_TEASER_LEAGUE_2018_ID,
                         username=normalize_username(username),
                         week=week,
                         team=team_acronym,

@@ -1,3 +1,0 @@
-rm sqlalchemy_example.db
-python -m teaser_league_backend.database_initiailization.creator
-python -m teaser_league_backend.database_initiailization.create_leagues

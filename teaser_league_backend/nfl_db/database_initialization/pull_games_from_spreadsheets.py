@@ -32,7 +32,7 @@ session = DBSession()
 global_id_counter = 0
 
 # First delete all current weeks in database
-session.query(TeamWeek).filter(and_(TeamWeek.year==2017, TeamWeek.sports_league==NFL_LEAGUE_NAME)).delete()
+session.query(TeamWeek).filter(and_(TeamWeek.year==2018, TeamWeek.sports_league==NFL_LEAGUE_NAME)).delete()
 
 all_insertable_rows = []
 for week, gid in week_to_gid.items():
@@ -56,9 +56,9 @@ for week, gid in week_to_gid.items():
                 'sports_league': NFL_LEAGUE_NAME,
                 'game_id': global_id_counter,
                 'week': week,
-                'year': 2017,
+                'year': 2018,
                 'team': team_name_to_acronym[row[2].lower()],
-                'vegas_spread': row[3],
+                'vegas_spread': row[3] or 0,
                 'adjusted_spread': row[4],
                 'game_time': NEW_YORK_TIMEZONE.localize(datetime.datetime.strptime(full_game_time_string, '%A, %m/%d %I:%M %p').replace(year=CURRENT_YEAR)).astimezone(pytz.utc),
                 'game_final': False,

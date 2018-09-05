@@ -14,6 +14,7 @@ from teaser_league_backend.logic.users import Users
 from teaser_league_backend.webapp import busted
 from teaser_league_backend.webapp import get_won_loss_for_week
 from teaser_league_backend.webapp import get_busted_string
+from teaser_league_backend.logic.league_users import LeagueUsers
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -49,11 +50,15 @@ session = DBSession()
 #    scores.append({'username': username, 'points': total_points})
 #pp.pprint(sorted(scores, key=lambda k: k['points'], reverse=True))
 
-teams = []
-for team_week in session.query(TeamWeek).filter(TeamWeek.week == 16).filter(TeamWeek.team == 'CAR'):
-   get_busted_string(team_week)
-   teams.append({'team': team_week.team, 'busted_string': get_busted_string(team_week)})
-pp.pprint(teams)
+#teams = []
+#for team_week in session.query(TeamWeek).filter(TeamWeek.week == 16).filter(TeamWeek.team == 'CAR'):
+#   get_busted_string(team_week)
+#   teams.append({'team': team_week.team, 'busted_string': get_busted_string(team_week)})
+#pp.pprint(teams)
+
+users = [user for user in session.query(LeagueUsers)]
+import ipdb; ipdb.set_trace()
+pass
 
 #for result in session.query(TeamWeek, Picks)\
 #                        .outerjoin(Picks, and_(Picks.team==TeamWeek.team, Picks.week==TeamWeek.week))\
