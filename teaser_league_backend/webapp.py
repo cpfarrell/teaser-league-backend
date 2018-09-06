@@ -258,7 +258,10 @@ def users_who_picked_team_in_week(team_week):
     ]
 
 def num_picked_team_week(team_week):
-    return  len(users_who_picked_team_in_week(team_week))
+    if pick_can_be_shown(team_week.game_time):
+        return  len(users_who_picked_team_in_week(team_week))
+    else:
+        return None
 
 def get_busted_string(team_week):
     relative_score = score_relative_to_adjusted_spread(team_week)
