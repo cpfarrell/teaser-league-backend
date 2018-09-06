@@ -271,7 +271,7 @@ def get_busted_string(team_week):
     elif relative_score <= 7 and not team_week.game_final and datetime.datetime.now() > team_week.game_time:
         return "Close"
     elif relative_score > 0 and team_week.game_final:
-        return "√"
+        return "Won"
     else:
         return ''
 
