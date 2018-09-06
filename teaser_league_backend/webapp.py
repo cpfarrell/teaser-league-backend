@@ -1,8 +1,9 @@
-13# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import datetime
 import hashlib
 import time
+import pytz
 
 from flask import Flask
 from flask import jsonify
@@ -16,6 +17,7 @@ from sqlalchemy import or_
 from sqlalchemy import exists
 
 from teaser_league_backend.constants import MAIN_TEASER_LEAGUE_2018_ID
+from teaser_league_backend.constants import NEW_YORK_TIMEZONE
 from teaser_league_backend.logic.base import Base
 from teaser_league_backend.logic.team_week import TeamWeek
 from teaser_league_backend.logic.picks import Picks
@@ -173,15 +175,18 @@ def add_rank_to_user_list(users, rankings):
     return users_with_rank
 
 def pick_can_be_shown(game_time):
-    (
-        # Game is happening at least with the next 2 days.
-        game_time > datetime.datetime.now() + datetime.timedelta(days=365-2) and (
-            # Game is on Thursday so relese bets at 5pm.
-            (datetime.datetime.now().weekday() == 3 and datetime.datetime.now().hour >= 17)
-            # Game is on sunday so close betting at 1 pm.
-            (datetime.datetime.now().weekday() == 6 and datetime.datetime.now().hour >= 13)
-        )
-    )
+    current_ny_time = pytz.utc.localize(datetime.datetime.now()).astimezone(NEW_YORK_TIMEZONE)
+
+    game_time_ny = pytz.utc.localize(game_time).astimezone(NEW_YORK_TIMEZONE)
+    game_live_time_ny = game_time_ny
+    # If game is on Sunday live time is just 1pm of that day.
+    if game_time_ny.weekday() == 6:
+        game_live_time_ny = game_time_ny.replace(hour=13, minute=0)
+    # Monday night game 1 pm yesterday.
+    elif game_time_ny.weekday() == 0:
+        game_live_time_ny = game_time_ny.replace(hour=13, day=game_time_ny.day - 1, minute=0)
+    return current_ny_time > game_live_time_ny
+
 
 # This should be a check against active sessions on a backend, looking for timeouts.
 def pick_is_for_current_user_or_user_is_admin(username, id_token):
